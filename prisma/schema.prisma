@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  urls Url[]
+
+  @@map("users")
+}
+
+model Url {
+  id          String    @id @default(uuid())
+  originalUrl String    @map("original_url")
+  shortCode   String    @unique @map("short_code")
+  alias       String?   @unique
+  userId      String?   @map("user_id")
+  clicks      Int       @default(0)
+  isActive    Boolean   @default(true) @map("is_active")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user     User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  analytics Analytics[]
+
+  @@index([shortCode])
+  @@index([userId])
+  @@map("urls")
+}
+
+model Analytics {
+  id        String   @id @default(uuid())
+  urlId     String   @map("url_id")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  referer   String?
+  country   String?
+  city      String?
+  clickedAt DateTime @default(now()) @map("clicked_at")
+
+  url Url @relation(fields: [urlId], references: [id], onDelete: Cascade)
+
+  @@index([urlId])
+  @@index([clickedAt])
+  @@map("analytics")
+}
