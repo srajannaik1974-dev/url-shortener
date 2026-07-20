@@ -9,6 +9,7 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const morganMiddleware = require('./middleware/morgan');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const healthRouter = require('./routes/health.routes');
+const authRouter = require('./routes/auth.routes');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api', apiLimiter);
 
 // ─── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api', healthRouter);
+app.use('/api/auth', authRouter);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use(notFoundHandler);
