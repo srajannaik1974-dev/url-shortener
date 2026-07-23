@@ -14,7 +14,8 @@ const validate = (schema) => (req, res, next) => {
     const result = schema.safeParse(req.body);
 
     if (!result.success) {
-        const messages = result.error.errors.map((e) => e.message).join('; ');
+        const issues = result.error.issues || result.error.errors || [];
+        const messages = issues.map((e) => e.message).join('; ');
         return next(new ValidationError(messages));
     }
 

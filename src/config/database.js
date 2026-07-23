@@ -24,7 +24,9 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 prisma.$on('error', (e) => {
-    logger.error('Prisma error:', e);
+    console.error("========== PRISMA ERROR ==========");
+    console.error(e);
+    console.error("==================================");
 });
 
 module.exports = prisma;

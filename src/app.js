@@ -11,6 +11,9 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 const healthRouter = require('./routes/health.routes');
 const authRouter = require('./routes/auth.routes');
 
+const urlRouter = require('./routes/url.routes');
+const { redirect } = require('./controllers/url.controller');
+
 const app = express();
 
 // ─── Security Headers ──────────────────────────────────────────────────────────
@@ -38,6 +41,10 @@ app.use('/api', apiLimiter);
 // ─── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api', healthRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/urls', urlRouter);
+
+// Public route for URL redirection
+app.get('/:shortCode', redirect);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use(notFoundHandler);
