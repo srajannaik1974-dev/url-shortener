@@ -36,9 +36,14 @@ async function generateUniqueShortCode(minLength = 6, maxLength = 8) {
         const code = generateRandomCode(length);
 
         // Check if the shortCode already exists in db
-        const existingUrl = await prisma.url.findUnique({
-            where: { shortCode: code },
-            select: { id: true }
+        const existingUrl = await prisma.url.findFirst({
+            where: {
+                OR: [
+                    { shortCode: code },
+                    { customAlias: code },
+                ],
+            },
+            select: { id: true },
         });
 
         if (!existingUrl) {

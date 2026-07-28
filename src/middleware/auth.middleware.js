@@ -10,20 +10,56 @@ const { catchAsync } = require('../utils/response');
  * Reads the token from the Authorization header: "Bearer <token>"
  */
 const protect = catchAsync(async (req, res, next) => {
-    // 1. Extract token from Authorization header
+
+    // ==========================
+    // DEBUG LOGS
+    // ==========================
+    console.log("\n========== AUTH DEBUG ==========");
+    console.log("Authorization Header:", req.headers.authorization);
+    console.log("All Headers:", req.headers);
+
+    // 1. Extract Authorization Header
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        throw new UnauthorizedError('You are not logged in. Please log in to access this resource.');
+
+    if (!authHeader) {
+        console.log("❌ Authorization header is missing");
+        throw new UnauthorizedError(
+            'You are not logged in. Please log in to access this resource.'
+        );
     }
 
+    if (!authHeader.startsWith('Bearer ')) {
+        console.log("❌ Authorization header does not start with 'Bearer '");
+        throw new UnauthorizedError(
+            'You are not logged in. Please log in to access this resource.'
+        );
+    }
+
+    // 2. Extract Token
     const token = authHeader.split(' ')[1];
 
-    // 2. Verify token (throws UnauthorizedError if invalid/expired)
-    const decoded = verifyToken(token);
+    console.log("Extracted Token:");
+    console.log(token);
 
-    // 3. Check user still exists
+    // 3. Verify Token
+    let decoded;
+
+    try {
+        decoded = verifyToken(token);
+
+        console.log("✅ Token Verified Successfully");
+        console.log("Decoded Payload:", decoded);
+    } catch (err) {
+        console.log("❌ Token Verification Failed");
+        console.log(err);
+        throw err;
+    }
+
+    // 4. Find User
     const user = await prisma.user.findUnique({
-        where: { id: decoded.id },
+        where: {
+            id: decoded.id,
+        },
         select: {
             id: true,
             name: true,
@@ -34,13 +70,26 @@ const protect = catchAsync(async (req, res, next) => {
         },
     });
 
+    console.log("Database User:");
+    console.log(user);
+
     if (!user) {
-        throw new UnauthorizedError('The user belonging to this token no longer exists.');
+        console.log("❌ User not found in database");
+
+        throw new UnauthorizedError(
+            'The user belonging to this token no longer exists.'
+        );
     }
 
-    // 4. Attach user to request
+    console.log("✅ Authentication Successful");
+    console.log("================================\n");
+
+    // Attach user
     req.user = user;
+
     next();
 });
 
-module.exports = { protect };
+module.exports = {
+    protect,
+};

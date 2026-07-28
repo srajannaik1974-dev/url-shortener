@@ -17,7 +17,7 @@ const create = catchAsync(async (req, res) => {
     const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
     const data = {
         ...url,
-        shortenedUrl: `${baseUrl}/${url.shortCode}`
+        shortenedUrl: `${baseUrl}/${url.customAlias || url.shortCode}`
     };
 
     sendSuccess(res, data, 201, { message: 'URL shortened successfully' });
