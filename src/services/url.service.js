@@ -151,9 +151,74 @@ async function redirectShortCode(shortCode, reqInfo = {}) {
     return url.originalUrl;
 }
 
+/**
+ * Retrieves analytics metrics for a specific URL owned by the user.
+ * @param {string} urlId URL UUID
+ * @param {string} userId Owner UUID
+ * @returns {Promise<Object>} URL analytics data
+ */
+async function getUrlAnalytics(urlId, userId) {
+    // 1. Verify URL existence
+    const url = await prisma.url.findUnique({
+        where: { id: urlId },
+    });
+
+    if (!url) {
+        throw new NotFoundError('URL');
+    }
+
+    // 2. Verify ownership
+    if (url.userId !== userId) {
+        throw new ForbiddenError('You do not have permission to view analytics for this URL');
+    }
+
+    // 3. Fetch recent analytics click records
+    const recentClicks = await prisma.analytics.findMany({
+        where: { urlId },
+        orderBy: { clickedAt: 'desc' },
+        take: 100,
+    });
+
+    // 4. Compute Referer breakdown
+    const refererMap = {};
+    const userAgentMap = {};
+
+    recentClicks.forEach((record) => {
+        const ref = record.referer || 'Direct / Unknown';
+        refererMap[ref] = (refererMap[ref] || 0) + 1;
+
+        const ua = record.userAgent || 'Unknown';
+        userAgentMap[ua] = (userAgentMap[ua] || 0) + 1;
+    });
+
+    const refererBreakdown = Object.entries(refererMap).map(([referer, count]) => ({ referer, count }));
+    const userAgentBreakdown = Object.entries(userAgentMap).map(([userAgent, count]) => ({ userAgent, count }));
+
+    return {
+        url: {
+            id: url.id,
+            originalUrl: url.originalUrl,
+            shortCode: url.shortCode,
+            customAlias: url.customAlias,
+            clicks: url.clicks,
+            isActive: url.isActive,
+            expiresAt: url.expiresAt,
+            createdAt: url.createdAt,
+        },
+        summary: {
+            totalClicks: url.clicks,
+            trackedClicksCount: recentClicks.length,
+        },
+        referers: refererBreakdown,
+        userAgents: userAgentBreakdown,
+        recentClicks,
+    };
+}
+
 module.exports = {
     createShortUrl,
     listUrlsForUser,
     deleteUrl,
     redirectShortCode,
+    getUrlAnalytics,
 };

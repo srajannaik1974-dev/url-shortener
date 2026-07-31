@@ -10,26 +10,10 @@ const { catchAsync } = require('../utils/response');
  * Reads the token from the Authorization header: "Bearer <token>"
  */
 const protect = catchAsync(async (req, res, next) => {
-
-    // ==========================
-    // DEBUG LOGS
-    // ==========================
-    console.log("\n========== AUTH DEBUG ==========");
-    console.log("Authorization Header:", req.headers.authorization);
-    console.log("All Headers:", req.headers);
-
     // 1. Extract Authorization Header
     const authHeader = req.headers.authorization;
 
-    if (!authHeader) {
-        console.log("❌ Authorization header is missing");
-        throw new UnauthorizedError(
-            'You are not logged in. Please log in to access this resource.'
-        );
-    }
-
-    if (!authHeader.startsWith('Bearer ')) {
-        console.log("❌ Authorization header does not start with 'Bearer '");
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
         throw new UnauthorizedError(
             'You are not logged in. Please log in to access this resource.'
         );
@@ -38,21 +22,13 @@ const protect = catchAsync(async (req, res, next) => {
     // 2. Extract Token
     const token = authHeader.split(' ')[1];
 
-    console.log("Extracted Token:");
-    console.log(token);
-
     // 3. Verify Token
-    let decoded;
+    const decoded = verifyToken(token);
 
-    try {
-        decoded = verifyToken(token);
-
-        console.log("✅ Token Verified Successfully");
-        console.log("Decoded Payload:", decoded);
-    } catch (err) {
-        console.log("❌ Token Verification Failed");
-        console.log(err);
-        throw err;
+    if (!decoded || !decoded.id) {
+        throw new UnauthorizedError(
+            'The token payload is invalid. Please log in again.'
+        );
     }
 
     // 4. Find User
@@ -70,23 +46,14 @@ const protect = catchAsync(async (req, res, next) => {
         },
     });
 
-    console.log("Database User:");
-    console.log(user);
-
     if (!user) {
-        console.log("❌ User not found in database");
-
         throw new UnauthorizedError(
             'The user belonging to this token no longer exists.'
         );
     }
 
-    console.log("✅ Authentication Successful");
-    console.log("================================\n");
-
-    // Attach user
+    // Attach user to request
     req.user = user;
-
     next();
 });
 

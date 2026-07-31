@@ -40,7 +40,7 @@ const list = catchAsync(async (req, res) => {
     const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
     const data = urls.map(url => ({
         ...url,
-        shortenedUrl: `${baseUrl}/${url.shortCode}`
+        shortenedUrl: `${baseUrl}/${url.customAlias || url.shortCode}`
     }));
 
     sendPaginated(res, data, page, limit, total);
@@ -76,9 +76,30 @@ const redirect = catchAsync(async (req, res) => {
     res.redirect(302, originalUrl);
 });
 
+/**
+ * GET /api/urls/:id/analytics
+ * Get analytics summary for a specific shortened URL
+ */
+const getAnalytics = catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const analytics = await urlService.getUrlAnalytics(id, req.user.id);
+
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const data = {
+        ...analytics,
+        url: {
+            ...analytics.url,
+            shortenedUrl: `${baseUrl}/${analytics.url.customAlias || analytics.url.shortCode}`
+        }
+    };
+
+    sendSuccess(res, data, 200, { message: 'Analytics retrieved successfully' });
+});
+
 module.exports = {
     create,
     list,
     deleteUrl,
-    redirect
+    redirect,
+    getAnalytics,
 };

@@ -4,7 +4,7 @@ const logger = require('../config/logger');
 const { AppError } = require('../utils/errors');
 
 /**
- * Handle Prisma known errors (unique constraint, record not found, etc.)
+ * Handle Prisma specific database errors
  */
 const handlePrismaError = (err) => {
     // P2002: Unique constraint failed
@@ -33,8 +33,8 @@ const handleJWTExpiredError = () => new AppError('Your token has expired. Please
  * Send detailed error response in development
  */
 const sendErrorDev = (err, res) => {
-    res.status(err.statusCode).json({
-        status: err.status,
+    res.status(err.statusCode || 500).json({
+        status: err.status || 'error',
         message: err.message,
         error: err,
         stack: err.stack,
@@ -60,7 +60,7 @@ const sendErrorProd = (err, res) => {
 };
 
 /**
- * Global error handling middleware
+ * Global Express Error Handling Middleware
  */
 const errorHandler = (err, req, res, next) => {
     err.statusCode = err.statusCode || 500;
