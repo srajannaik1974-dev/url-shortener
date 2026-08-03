@@ -5,6 +5,7 @@ const { generateUniqueShortCode } = require('../utils/shortCode');
 const { ConflictError, NotFoundError, ForbiddenError, AppError } = require('../utils/errors');
 const cacheService = require('./cache.service');
 const logger = require('../config/logger');
+const { parseToUtcDate, formatUtcAndLocal } = require('../utils/datetime');
 
 /**
  * Creates a shortened URL for a user.
@@ -40,7 +41,9 @@ async function createShortUrl(urlData, userId) {
         shortCode,
         userId,
         customAlias: customAlias || null,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        // parseToUtcDate normalises any offset-aware ISO string to UTC before
+        // storing. PostgreSQL persists it as UTC regardless of server timezone.
+        expiresAt: parseToUtcDate(expiresAt),
     };
 
     // 4. Create the URL record in the database
@@ -138,11 +141,30 @@ async function redirectShortCode(shortCode, reqInfo = {}) {
 
     if (cached) {
         // ── CACHE HIT ────────────────────────────────────────────────────────
-        // The cached payload already passed all validations when it was stored
-        // (active, not expired).  We still run analytics so click counts and
-        // the Analytics table remain accurate.
         logger.debug(`[UrlService] Cache HIT for shortCode="${shortCode}"`);
 
+        // ── Expiration check on Cache Hit ────────────────────────────────────
+        // Log both UTC and server-local time so IST users can verify the
+        // stored expiry matches what they intended (e.g. +05:30 offset).
+        const cachedExpiryFmt = cached.expiresAt
+            ? formatUtcAndLocal(new Date(cached.expiresAt))
+            : 'none';
+        logger.debug(
+            `[UrlService] Cache HIT expiry check — ` +
+            `now=${formatUtcAndLocal(new Date())} | expiresAt=${cachedExpiryFmt}`
+        );
+
+        // Both sides resolved to UTC milliseconds — timezone-safe.
+        if (cached.expiresAt && new Date(cached.expiresAt).getTime() < Date.now()) {
+            await cacheService.deleteUrlCache(shortCode);
+            logger.debug(
+                `[UrlService] Cache HIT expired for shortCode="${shortCode}" — evicted from Redis`
+            );
+            // Do NOT increment click count, do NOT create analytics row.
+            throw new AppError('This URL has expired', 410);
+        }
+
+        // URL is cached, active, and not expired — run analytics and redirect.
         await prisma.$transaction([
             prisma.url.update({
                 where: { id: cached.urlId },
@@ -183,7 +205,17 @@ async function redirectShortCode(shortCode, reqInfo = {}) {
         throw new AppError('This URL is inactive', 400);
     }
 
-    if (url.expiresAt && new Date(url.expiresAt) < new Date()) {
+    // Log both UTC and server-local time so IST users can verify the
+    // stored expiry matches what they intended (e.g. +05:30 offset).
+    const dbExpiryFmt = url.expiresAt
+        ? formatUtcAndLocal(url.expiresAt)
+        : 'none';
+    logger.debug(
+        `[UrlService] Cache MISS expiry check — ` +
+        `now=${formatUtcAndLocal(new Date())} | expiresAt=${dbExpiryFmt}`
+    );
+
+    if (url.expiresAt && new Date(url.expiresAt).getTime() < Date.now()) {
         // Do NOT cache expired URLs (requirement #7); 410 Gone
         throw new AppError('This URL has expired', 410);
     }
@@ -284,10 +316,151 @@ async function getUrlAnalytics(urlId, userId) {
     };
 }
 
+/**
+ * Updates the active status of a URL owned by the user.
+ * Invalidates Redis cache so the next redirect reflects the new state.
+ *
+ * @param {string} urlId    URL UUID
+ * @param {string} userId   Owner UUID
+ * @param {boolean} isActive New status
+ * @returns {Promise<Object>} Updated URL record
+ */
+async function updateUrlStatus(urlId, userId, isActive) {
+    // 1. Verify existence
+    const url = await prisma.url.findUnique({
+        where: { id: urlId },
+    });
+
+    if (!url) {
+        throw new NotFoundError('URL');
+    }
+
+    // 2. Verify ownership
+    if (url.userId !== userId) {
+        throw new ForbiddenError('You do not have permission to update this URL');
+    }
+
+    // 3. Persist change
+    const updated = await prisma.url.update({
+        where: { id: urlId },
+        data: { isActive },
+    });
+
+    // 4. Invalidate Redis cache for both shortCode and customAlias
+    await cacheService.deleteUrlCache(url.shortCode);
+    if (url.customAlias) {
+        await cacheService.deleteUrlCache(url.customAlias);
+    }
+    logger.debug(`[UrlService] Cache invalidated after status update for URL id=${urlId}`);
+
+    return updated;
+}
+
+/**
+ * Updates (or removes) the expiration date of a URL owned by the user.
+ * Pass null for expiresAt to remove expiration entirely.
+ * Invalidates Redis cache so the next redirect picks up the new expiry.
+ *
+ * @param {string}      urlId     URL UUID
+ * @param {string}      userId    Owner UUID
+ * @param {string|null} expiresAt ISO date string or null to remove
+ * @returns {Promise<Object>} Updated URL record
+ */
+async function updateUrlExpiration(urlId, userId, expiresAt) {
+    // 1. Verify existence
+    const url = await prisma.url.findUnique({
+        where: { id: urlId },
+    });
+
+    if (!url) {
+        throw new NotFoundError('URL');
+    }
+
+    // 2. Verify ownership
+    if (url.userId !== userId) {
+        throw new ForbiddenError('You do not have permission to update this URL');
+    }
+
+    // 3. Persist change (null removes expiration).
+    // parseToUtcDate normalises any offset-aware ISO string (e.g. +05:30)
+    // to UTC before persisting. Passing null removes expiration entirely.
+    const updated = await prisma.url.update({
+        where: { id: urlId },
+        data: { expiresAt: parseToUtcDate(expiresAt) },
+    });
+
+    // 4. Invalidate Redis cache for both shortCode and customAlias
+    await cacheService.deleteUrlCache(url.shortCode);
+    if (url.customAlias) {
+        await cacheService.deleteUrlCache(url.customAlias);
+    }
+    logger.debug(`[UrlService] Cache invalidated after expiration update for URL id=${urlId}`);
+
+    return updated;
+}
+
+/**
+ * Scheduled cleanup task: finds all URLs that are past their expiresAt
+ * date and still marked isActive=true, sets them to isActive=false,
+ * and invalidates their Redis cache entries.
+ *
+ * This function is designed to be called by a recurring timer (setInterval).
+ * It does NOT delete records — only deactivates them.
+ *
+ * @returns {Promise<number>} Count of URLs deactivated in this run
+ */
+async function cleanupExpiredUrls() {
+    // new Date() is always UTC, and PostgreSQL expiresAt is stored as UTC,
+    // so the lte comparison is timezone-safe.
+    const now = new Date();
+    logger.debug(
+        `[UrlService] Cleanup expiry check — now=${formatUtcAndLocal(now)}`
+    );
+
+    // Find all URLs that have expired but are still marked active
+    const expiredUrls = await prisma.url.findMany({
+        where: {
+            isActive: true,
+            expiresAt: { lte: now }, // lte = less than or equal to now (UTC)
+        },
+        select: {
+            id: true,
+            shortCode: true,
+            customAlias: true,
+        },
+    });
+
+    if (expiredUrls.length === 0) {
+        logger.debug('[UrlService] Cleanup: no expired URLs found');
+        return 0;
+    }
+
+    // Batch-update all expired URLs to inactive in a single query
+    const ids = expiredUrls.map((u) => u.id);
+    await prisma.url.updateMany({
+        where: { id: { in: ids } },
+        data: { isActive: false },
+    });
+
+    // Invalidate Redis cache for every deactivated URL
+    for (const url of expiredUrls) {
+        await cacheService.deleteUrlCache(url.shortCode);
+        if (url.customAlias) {
+            await cacheService.deleteUrlCache(url.customAlias);
+        }
+    }
+
+    logger.info(`[UrlService] Cleanup: deactivated ${expiredUrls.length} expired URL(s)`);
+    return expiredUrls.length;
+}
+
 module.exports = {
     createShortUrl,
     listUrlsForUser,
     deleteUrl,
     redirectShortCode,
     getUrlAnalytics,
+    updateUrlStatus,
+    updateUrlExpiration,
+    cleanupExpiredUrls,
 };

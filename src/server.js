@@ -18,6 +18,7 @@ const app = require('./app');
 const logger = require('./config/logger');
 const prisma = require('./config/database');
 const { redisClient } = require('./config/redis');
+const cleanupJob = require('./jobs/cleanupExpired.job');
 
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -34,6 +35,9 @@ const startServer = async () => {
         } catch (redisErr) {
             logger.error(`Redis: failed to connect on startup – ${redisErr.message}. Continuing without cache.`);
         }
+
+        // ── Background Jobs ───────────────────────────────────────────────────
+        const cleanupHandle = cleanupJob.start();
 
         const server = app.listen(PORT, () => {
             logger.info(`Server running on port ${PORT}`);
@@ -77,6 +81,9 @@ const startServer = async () => {
 
         const shutdown = async (signal) => {
             logger.info(`Received ${signal}. Shutting down gracefully...`);
+            // Stop the cleanup job first
+            clearInterval(cleanupHandle);
+            logger.info('[CleanupJob] Stopped');
             server.close(async (err) => {
                 if (err) {
                     logger.error('Error closing server', err);

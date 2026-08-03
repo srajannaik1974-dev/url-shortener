@@ -96,10 +96,44 @@ const getAnalytics = catchAsync(async (req, res) => {
     sendSuccess(res, data, 200, { message: 'Analytics retrieved successfully' });
 });
 
+/**
+ * PATCH /api/urls/:id/status
+ * Update the active status of a shortened URL
+ */
+const updateStatus = catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    const url = await urlService.updateUrlStatus(id, req.user.id, isActive);
+
+    sendSuccess(res, url, 200, {
+        message: `URL ${isActive ? 'activated' : 'deactivated'} successfully`,
+    });
+});
+
+/**
+ * PATCH /api/urls/:id/expiration
+ * Update or remove the expiration date of a shortened URL
+ */
+const updateExpiration = catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const { expiresAt } = req.body;
+
+    const url = await urlService.updateUrlExpiration(id, req.user.id, expiresAt);
+
+    sendSuccess(res, url, 200, {
+        message: expiresAt
+            ? 'URL expiration updated successfully'
+            : 'URL expiration removed successfully',
+    });
+});
+
 module.exports = {
     create,
     list,
     deleteUrl,
     redirect,
     getAnalytics,
+    updateStatus,
+    updateExpiration,
 };
