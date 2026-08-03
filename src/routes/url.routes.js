@@ -16,14 +16,15 @@ const {
     updateStatusSchema,
     updateExpirationSchema,
 } = require('../validations/url.validation');
+const { urlCreateLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
 // Apply protect middleware to all /api/urls routes
 router.use(protect);
 
-// POST /api/urls - Create a shortened URL
-router.post('/', validate(createUrlSchema), create);
+// POST /api/urls - Create a shortened URL (100 per user per hour)
+router.post('/', urlCreateLimiter, validate(createUrlSchema), create);
 
 // GET /api/urls - List paginated URLs for user
 router.get('/', list);

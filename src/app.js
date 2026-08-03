@@ -7,7 +7,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const morganMiddleware = require('./middleware/morgan');
-const { apiLimiter } = require('./middleware/rateLimiter');
+const { apiLimiter, redirectLimiter } = require('./middleware/rateLimiter');
 const healthRouter = require('./routes/health.routes');
 const authRouter = require('./routes/auth.routes');
 
@@ -43,8 +43,8 @@ app.use('/api', healthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/urls', urlRouter);
 
-// Public route for URL redirection
-app.get('/:shortCode', redirect);
+// Public route for URL redirection (1000 requests per IP per minute)
+app.get('/:shortCode', redirectLimiter, redirect);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use(notFoundHandler);
