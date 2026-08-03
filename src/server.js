@@ -17,6 +17,7 @@ process.exit = (code) => {
 const app = require('./app');
 const logger = require('./config/logger');
 const prisma = require('./config/database');
+const { redisClient } = require('./config/redis');
 
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -24,6 +25,15 @@ const startServer = async () => {
     try {
         await prisma.$connect();
         logger.info('Database connection established');
+
+        // ── Redis: connect (non-fatal) ────────────────────────────────────────
+        // Wrapped in try/catch so a Redis outage never prevents the server from
+        // starting. The application will continue using PostgreSQL as fallback.
+        try {
+            await redisClient.connect();
+        } catch (redisErr) {
+            logger.error(`Redis: failed to connect on startup – ${redisErr.message}. Continuing without cache.`);
+        }
 
         const server = app.listen(PORT, () => {
             logger.info(`Server running on port ${PORT}`);
@@ -73,6 +83,15 @@ const startServer = async () => {
                     process.exit(1);
                 }
                 await prisma.$disconnect();
+                // Disconnect Redis cleanly if it was connected
+                try {
+                    if (redisClient.status === 'ready') {
+                        await redisClient.quit();
+                        logger.info('Redis: connection closed gracefully');
+                    }
+                } catch (redisErr) {
+                    logger.warn(`Redis: error during shutdown – ${redisErr.message}`);
+                }
                 process.exit(0);
             });
         };

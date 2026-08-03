@@ -3,6 +3,8 @@
 const prisma = require('../config/database');
 const { generateUniqueShortCode } = require('../utils/shortCode');
 const { ConflictError, NotFoundError, ForbiddenError, AppError } = require('../utils/errors');
+const cacheService = require('./cache.service');
+const logger = require('../config/logger');
 
 /**
  * Creates a shortened URL for a user.
@@ -97,20 +99,72 @@ async function deleteUrl(urlId, userId) {
         throw new ForbiddenError('You do not have permission to delete this URL');
     }
 
-    return await prisma.url.delete({
+    const deleted = await prisma.url.delete({
         where: { id: urlId },
     });
+
+    // ── Cache Invalidation ───────────────────────────────────────────────────
+    // Remove both possible cache keys (shortCode and customAlias, if set)
+    // so that no stale entry remains after deletion.
+    await cacheService.deleteUrlCache(url.shortCode);
+    if (url.customAlias) {
+        await cacheService.deleteUrlCache(url.customAlias);
+    }
+    logger.debug(`[UrlService] Cache invalidated for deleted URL id=${urlId}`);
+
+    return deleted;
 }
 
 /**
  * Processes redirection for a short code or custom alias.
- * Increments click count and creates an analytics entry.
+ *
+ * Implements the Cache-Aside (Lazy Loading) pattern:
+ *
+ *  1. Check Redis for a cached URL payload (CACHE HIT → skip DB query).
+ *  2. On a cache miss, query PostgreSQL, validate the URL, then populate Redis.
+ *  3. Analytics (click counter + Analytics row) always run against PostgreSQL
+ *     regardless of whether the URL was served from cache or DB.
+ *
+ * If Redis is unavailable at any point the function transparently falls back
+ * to PostgreSQL – the application never fails because of a Redis outage.
+ *
  * @param {string} shortCode Short code or custom alias
- * @param {Object} reqInfo Request details (ipAddress, userAgent, referer)
- * @returns {Promise<string>} Original URL
+ * @param {Object} reqInfo   Request details (ipAddress, userAgent, referer)
+ * @returns {Promise<string>} Original URL to redirect to
  */
 async function redirectShortCode(shortCode, reqInfo = {}) {
-    // Find URL by shortCode or customAlias
+    // ── Step 1: Cache-Aside lookup ───────────────────────────────────────────
+    const cached = await cacheService.getUrlCache(shortCode);
+
+    if (cached) {
+        // ── CACHE HIT ────────────────────────────────────────────────────────
+        // The cached payload already passed all validations when it was stored
+        // (active, not expired).  We still run analytics so click counts and
+        // the Analytics table remain accurate.
+        logger.debug(`[UrlService] Cache HIT for shortCode="${shortCode}"`);
+
+        await prisma.$transaction([
+            prisma.url.update({
+                where: { id: cached.urlId },
+                data: { clicks: { increment: 1 } },
+            }),
+            prisma.analytics.create({
+                data: {
+                    urlId:     cached.urlId,
+                    ipAddress: reqInfo.ipAddress || null,
+                    userAgent: reqInfo.userAgent || null,
+                    referer:   reqInfo.referer   || null,
+                }
+            })
+        ]);
+
+        return cached.originalUrl;
+    }
+
+    // ── CACHE MISS ───────────────────────────────────────────────────────────
+    logger.debug(`[UrlService] Cache MISS for shortCode="${shortCode}" – querying PostgreSQL`);
+
+    // ── Step 2: Query PostgreSQL ─────────────────────────────────────────────
     const url = await prisma.url.findFirst({
         where: {
             OR: [
@@ -125,14 +179,29 @@ async function redirectShortCode(shortCode, reqInfo = {}) {
     }
 
     if (!url.isActive) {
+        // Do NOT cache inactive URLs (requirement #7)
         throw new AppError('This URL is inactive', 400);
     }
 
     if (url.expiresAt && new Date(url.expiresAt) < new Date()) {
-        throw new AppError('This URL has expired', 410); // 410 Gone
+        // Do NOT cache expired URLs (requirement #7); 410 Gone
+        throw new AppError('This URL has expired', 410);
     }
 
-    // Modern transaction to update counts and write analytics log
+    // ── Step 3: Populate Redis (only active, non-expired URLs) ───────────────
+    // Store the cache entry keyed by the lookup token (shortCode or alias).
+    // Storing it under the lookup key means the next identical request gets a
+    // hit immediately, regardless of whether shortCode or customAlias was used.
+    await cacheService.setUrlCache(shortCode, {
+        originalUrl: url.originalUrl,
+        urlId:       url.id,
+        isActive:    url.isActive,
+        expiresAt:   url.expiresAt,
+    });
+
+    // ── Step 4: Analytics (click counter + Analytics row) ───────────────────
+    // Identical to the original implementation; runs after every redirect
+    // regardless of cache hit/miss so counts are always accurate.
     await prisma.$transaction([
         prisma.url.update({
             where: { id: url.id },
@@ -140,10 +209,10 @@ async function redirectShortCode(shortCode, reqInfo = {}) {
         }),
         prisma.analytics.create({
             data: {
-                urlId: url.id,
+                urlId:     url.id,
                 ipAddress: reqInfo.ipAddress || null,
                 userAgent: reqInfo.userAgent || null,
-                referer: reqInfo.referer || null,
+                referer:   reqInfo.referer   || null,
             }
         })
     ]);
