@@ -1,0 +1,234 @@
+/* ==========================================================================
+   tokens.css — Canonical Design Token File
+   URL Shortener · Design System v2
+
+   Inspired by: Vercel, Linear, Stripe
+   Philosophy: Restraint over decoration. Ink over chrome.
+   ========================================================================== */
+
+/* ─── Font Faces (Geist) ───────────────────────────────────────────────────
+   Loaded via Google Fonts / npm — see index.css for @import               */
+
+:root {
+
+  /* ── Font Stacks ─────────────────────────────────────────────────────── */
+  --font-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont,
+               'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', 'Fira Code',
+               'Cascadia Code', ui-monospace, monospace;
+
+  /* ── Typography Scale ────────────────────────────────────────────────── */
+  /* size / line-height / tracking */
+  --text-xs-size:     11px;
+  --text-xs-lh:       16px;
+  --text-xs-tracking: 0.02em;
+
+  --text-sm-size:     13px;
+  --text-sm-lh:       20px;
+  --text-sm-tracking: 0em;
+
+  --text-base-size:   15px;
+  --text-base-lh:     24px;
+  --text-base-tracking: -0.01em;
+
+  --text-lg-size:     18px;
+  --text-lg-lh:       28px;
+  --text-lg-tracking: -0.01em;
+
+  --text-xl-size:     20px;
+  --text-xl-lh:       28px;
+  --text-xl-tracking: -0.015em;
+
+  --text-2xl-size:    24px;
+  --text-2xl-lh:      32px;
+  --text-2xl-tracking: -0.02em;
+
+  --text-3xl-size:    30px;
+  --text-3xl-lh:      36px;
+  --text-3xl-tracking: -0.025em;
+
+  --text-4xl-size:    36px;
+  --text-4xl-lh:      44px;
+  --text-4xl-tracking: -0.03em;
+
+  /* ── Spacing Scale (4px base unit) ──────────────────────────────────── */
+  --space-0:    0px;
+  --space-px:   1px;
+  --space-0-5:  2px;
+  --space-1:    4px;
+  --space-1-5:  6px;
+  --space-2:    8px;
+  --space-2-5:  10px;
+  --space-3:    12px;
+  --space-4:    16px;
+  --space-5:    20px;
+  --space-6:    24px;
+  --space-7:    28px;
+  --space-8:    32px;
+  --space-10:   40px;
+  --space-12:   48px;
+  --space-14:   56px;
+  --space-16:   64px;
+  --space-20:   80px;
+  --space-24:   96px;
+
+  /* ── Border Radius ───────────────────────────────────────────────────── */
+  --radius-sm:   4px;    /* tags, badges, small elements */
+  --radius-md:   6px;    /* inputs, buttons, default UI */
+  --radius-lg:   8px;    /* cards, panels */
+  --radius-xl:   12px;   /* modals, large panels */
+  --radius-2xl:  16px;   /* featured cards */
+  --radius-full: 9999px; /* pills, avatars */
+
+  /* ── Shadow System ───────────────────────────────────────────────────── */
+  /* Extremely subtle — surfaces communicate with borders, not shadows     */
+  --shadow-xs:    0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-sm:    0 1px 3px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-md:    0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -1px rgb(0 0 0 / 0.04);
+  --shadow-lg:    0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -2px rgb(0 0 0 / 0.04);
+  --shadow-xl:    0 20px 25px -5px rgb(0 0 0 / 0.07), 0 8px 10px -5px rgb(0 0 0 / 0.04);
+  --shadow-focus: 0 0 0 3px rgb(0 112 243 / 0.20);
+
+  /* ── Transitions ─────────────────────────────────────────────────────── */
+  --duration-fast:   100ms;
+  --duration-base:   150ms;
+  --duration-slow:   250ms;
+  --duration-slower: 350ms;
+  --ease-default:    cubic-bezier(0.16, 1, 0.3, 1); /* ease-out-expo */
+  --ease-in:         cubic-bezier(0.4, 0, 1, 1);
+  --ease-out:        cubic-bezier(0, 0, 0.2, 1);
+
+  /* ── Z-Index Scale ───────────────────────────────────────────────────── */
+  --z-hide:      -1;
+  --z-base:       0;
+  --z-raised:    10;
+  --z-dropdown:  100;
+  --z-sticky:    200;
+  --z-overlay:   300;
+  --z-modal:     400;
+  --z-toast:     500;
+
+  /* ── Layout ─────────────────────────────────────────────────────────── */
+  --sidebar-width:    220px;
+  --topbar-height:    56px;
+  --content-max-w:   1120px;
+
+  /* ========== LIGHT MODE COLORS ========================================= */
+
+  /* Backgrounds */
+  --color-bg-app:      #fafafa;   /* Root app background */
+  --color-bg-page:     #ffffff;   /* Main content panels */
+  --color-bg-subtle:   #f4f4f5;   /* Subtle fills, alt rows */
+  --color-bg-ui:       #e4e4e7;   /* Input track, ui elements */
+  --color-bg-ui-hover: #d4d4d8;   /* Hover state of ui elements */
+
+  /* Borders */
+  --color-border:        #e4e4e7; /* Default border */
+  --color-border-strong: #a1a1aa; /* Focused, prominent dividers */
+  --color-border-input:  #d4d4d8; /* Input border */
+
+  /* Text */
+  --color-text-primary:     #09090b; /* Headings, body copy */
+  --color-text-secondary:   #71717a; /* Labels, secondary info */
+  --color-text-tertiary:    #a1a1aa; /* Captions, timestamps */
+  --color-text-placeholder: #a1a1aa; /* Input placeholder */
+  --color-text-disabled:    #d4d4d8; /* Disabled elements */
+  --color-text-inverse:     #ffffff; /* Text on dark/accent bg */
+
+  /* Accent (primary action — used sparingly) */
+  --color-accent:          #0070f3;
+  --color-accent-hover:    #0065d9;
+  --color-accent-active:   #005bbf;
+  --color-accent-subtle:   #eff6ff;
+  --color-accent-subtle-border: #bfdbfe;
+  --color-accent-text:     #1d4ed8;
+
+  /* Semantic — Success */
+  --color-success:          #16a34a;
+  --color-success-subtle:   #f0fdf4;
+  --color-success-border:   #bbf7d0;
+  --color-success-text:     #15803d;
+
+  /* Semantic — Warning */
+  --color-warning:          #d97706;
+  --color-warning-subtle:   #fffbeb;
+  --color-warning-border:   #fde68a;
+  --color-warning-text:     #b45309;
+
+  /* Semantic — Danger */
+  --color-danger:           #dc2626;
+  --color-danger-hover:     #b91c1c;
+  --color-danger-subtle:    #fef2f2;
+  --color-danger-border:    #fecaca;
+  --color-danger-text:      #991b1b;
+
+  /* Semantic — Info */
+  --color-info:             #0284c7;
+  --color-info-subtle:      #f0f9ff;
+  --color-info-border:      #bae6fd;
+  --color-info-text:        #0369a1;
+}
+
+/* ========== DARK MODE COLORS ============================================= */
+.dark {
+  /* Backgrounds */
+  --color-bg-app:      #09090b;
+  --color-bg-page:     #09090b;
+  --color-bg-subtle:   #18181b;
+  --color-bg-ui:       #27272a;
+  --color-bg-ui-hover: #3f3f46;
+
+  /* Borders */
+  --color-border:        #27272a;
+  --color-border-strong: #3f3f46;
+  --color-border-input:  #3f3f46;
+
+  /* Text */
+  --color-text-primary:     #fafafa;
+  --color-text-secondary:   #a1a1aa;
+  --color-text-tertiary:    #71717a;
+  --color-text-placeholder: #52525b;
+  --color-text-disabled:    #3f3f46;
+  --color-text-inverse:     #09090b;
+
+  /* Accent */
+  --color-accent:          #3b82f6;
+  --color-accent-hover:    #2563eb;
+  --color-accent-active:   #1d4ed8;
+  --color-accent-subtle:   #172554;
+  --color-accent-subtle-border: #1d4ed8;
+  --color-accent-text:     #93c5fd;
+
+  /* Semantic — Success */
+  --color-success:          #22c55e;
+  --color-success-subtle:   #052e16;
+  --color-success-border:   #166534;
+  --color-success-text:     #86efac;
+
+  /* Semantic — Warning */
+  --color-warning:          #f59e0b;
+  --color-warning-subtle:   #1c1400;
+  --color-warning-border:   #78350f;
+  --color-warning-text:     #fcd34d;
+
+  /* Semantic — Danger */
+  --color-danger:           #f87171;
+  --color-danger-hover:     #ef4444;
+  --color-danger-subtle:    #2d0000;
+  --color-danger-border:    #7f1d1d;
+  --color-danger-text:      #fca5a5;
+
+  /* Semantic — Info */
+  --color-info:             #38bdf8;
+  --color-info-subtle:      #0c1a2e;
+  --color-info-border:      #075985;
+  --color-info-text:        #7dd3fc;
+
+  /* Dark mode shadows (stronger) */
+  --shadow-xs:    0 1px 2px rgb(0 0 0 / 0.20);
+  --shadow-sm:    0 1px 3px rgb(0 0 0 / 0.30), 0 1px 2px rgb(0 0 0 / 0.20);
+  --shadow-md:    0 4px 6px -1px rgb(0 0 0 / 0.30), 0 2px 4px -1px rgb(0 0 0 / 0.20);
+  --shadow-lg:    0 10px 15px -3px rgb(0 0 0 / 0.40), 0 4px 6px -2px rgb(0 0 0 / 0.30);
+  --shadow-xl:    0 20px 25px -5px rgb(0 0 0 / 0.50), 0 8px 10px -5px rgb(0 0 0 / 0.30);
+  --shadow-focus: 0 0 0 3px rgb(59 130 246 / 0.35);
+}

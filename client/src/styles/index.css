@@ -1,0 +1,202 @@
+/* ==========================================================================
+   index.css — Global Styles Entry Point
+   URL Shortener · Design System v2
+   ========================================================================== */
+
+/* ─── Geist Font (Vercel's open-source typeface) ─────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ─── Design Tokens ───────────────────────────────────────────────────────── */
+@import "./tokens.css";
+
+/* ─── Tailwind CSS ────────────────────────────────────────────────────────── */
+@import "tailwindcss";
+
+/* ─── Tailwind Theme Extension ────────────────────────────────────────────── */
+/* Wire Tailwind classes to our CSS custom properties for semantic class names */
+@theme {
+  /* Colors */
+  --color-bg-app:      var(--color-bg-app);
+  --color-bg-page:     var(--color-bg-page);
+  --color-bg-subtle:   var(--color-bg-subtle);
+  --color-bg-ui:       var(--color-bg-ui);
+  --color-text-primary:   var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary:  var(--color-text-tertiary);
+  --color-border:        var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-accent:   var(--color-accent);
+  --color-success:  var(--color-success);
+  --color-warning:  var(--color-warning);
+  --color-danger:   var(--color-danger);
+
+  /* Font families */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* Border radius */
+  --radius-sm:   var(--radius-sm);
+  --radius-md:   var(--radius-md);
+  --radius-lg:   var(--radius-lg);
+  --radius-xl:   var(--radius-xl);
+  --radius-2xl:  var(--radius-2xl);
+  --radius-full: var(--radius-full);
+
+  /* Shadows */
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+}
+
+/* ─── Base Reset ──────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border-width: 0;
+  border-style: solid;
+  border-color: var(--color-border);
+}
+
+/* ─── Root ────────────────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-size: 15px; /* base = --text-base-size */
+  line-height: 1.6;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base-size);
+  line-height: var(--text-base-lh);
+  background-color: var(--color-bg-app);
+  color: var(--color-text-primary);
+  /* Smooth theme transition */
+  transition:
+    background-color var(--duration-slow) var(--ease-out),
+    color var(--duration-slow) var(--ease-out),
+    border-color var(--duration-slow) var(--ease-out);
+  min-height: 100dvh;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  isolation: isolate;
+}
+
+/* ─── Typography Base ─────────────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+p {
+  font-size: var(--text-base-size);
+  line-height: var(--text-base-lh);
+  color: var(--color-text-secondary);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ─── Code ────────────────────────────────────────────────────────────────── */
+code, kbd, pre, samp {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* ─── Form elements ───────────────────────────────────────────────────────── */
+input, button, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-tertiary); }
+
+/* ─── Focus ───────────────────────────────────────────────────────────────── */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── Selection ───────────────────────────────────────────────────────────── */
+::selection {
+  background-color: var(--color-accent-subtle);
+  color: var(--color-accent-text);
+}
+
+/* ─── Skeleton Shimmer ────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-subtle) 25%,
+    var(--color-bg-ui)     50%,
+    var(--color-bg-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* ─── Page Transition ─────────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-transition {
+  animation: fadeUp var(--duration-slow) var(--ease-default);
+}
+
+/* ─── Utility — SR Only ───────────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ─── Utility — truncate ──────────────────────────────────────────────────── */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
