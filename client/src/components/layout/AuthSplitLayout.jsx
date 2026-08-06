@@ -1,79 +1,54 @@
+import { Link } from 'react-router-dom';
+import { Zap } from 'lucide-react';
+
 /**
  * AuthSplitLayout.jsx
  *
- * Premium split layout for Authentication pages (Login, Register).
- * Left side: Form content
- * Right side: Graphic/Pattern
+ * Authentic single-column layout for Authentication (Login / Register).
+ * Handcrafted aesthetic inspired by GitHub, Notion, and Arc Browser.
  */
-
-import { Zap } from 'lucide-react';
-
 export default function AuthSplitLayout({ children, title, subtitle }) {
   return (
-    <div className="flex min-h-[calc(100dvh-56px)] bg-[var(--color-bg-app)]">
-      {/* ── Left side (Form) ────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:w-[480px] xl:w-[540px]">
-        <div className="mx-auto w-full max-w-[360px]">
-          {/* Header */}
-          <div className="mb-8">
-            <div
-              className="flex items-center justify-center w-10 h-10 mb-6
-                         rounded-[var(--radius-lg)] bg-[var(--color-accent)] text-white shadow-[var(--shadow-sm)]"
-              aria-hidden="true"
-            >
-              <Zap className="w-5 h-5" />
-            </div>
-            <h1 className="text-[24px] font-semibold text-[var(--color-text-primary)] tracking-tight mb-2">
+    <div className="min-h-screen w-full bg-[var(--color-bg-app)] text-[var(--color-text-primary)] font-[var(--font-sans)] flex flex-col justify-between items-center px-4 py-8 sm:py-14 select-none">
+      {/* Brand Header */}
+      <header className="flex flex-col items-center gap-3 pt-2 sm:pt-4">
+        <Link to="/" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] rounded p-1">
+          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--color-accent)] text-white shadow-sm">
+            <Zap className="w-4 h-4 fill-current" />
+          </span>
+          <span className="text-lg font-semibold tracking-tight text-[var(--color-text-primary)]">
+            Snip<span className="text-[var(--color-text-secondary)] font-normal">.ly</span>
+          </span>
+        </Link>
+      </header>
+
+      {/* Main Auth Card Box */}
+      <main className="w-full max-w-[380px] my-auto">
+        <div className="bg-[var(--color-bg-page)] border border-[var(--color-border)] rounded-xl p-6 sm:p-7 shadow-xl space-y-5">
+          <div className="space-y-1 text-left">
+            <h1 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-[14px] text-[var(--color-text-secondary)]">
+              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
                 {subtitle}
               </p>
             )}
           </div>
 
-          {/* Form Content */}
           {children}
         </div>
-      </div>
+      </main>
 
-      {/* ── Right side (Graphic/Pattern) ────────────────────────────────── */}
-      <div className="hidden lg:flex relative flex-1 bg-[var(--color-bg-page)] border-l border-[var(--color-border)] overflow-hidden items-center justify-center">
-        {/* Subtle grid pattern background */}
-        <svg
-          className="absolute inset-0 h-full w-full stroke-[var(--color-border-strong)] opacity-[0.15] dark:opacity-[0.07]"
-          aria-hidden="true"
-        >
-          <defs>
-            <pattern id="grid-pattern" width="32" height="32" patternUnits="userSpaceOnUse">
-              <path d="M0 32V0h32" fill="none" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid-pattern)" />
-        </svg>
-
-        {/* Decorative graphic / Testimonial box */}
-        <div className="relative z-10 max-w-md p-8 rounded-[var(--radius-xl)] bg-[var(--color-bg-page)]/80 backdrop-blur-md border border-[var(--color-border)] shadow-[var(--shadow-xl)]">
-          <div className="flex gap-2 mb-4">
-            <div className="w-3 h-3 rounded-full bg-[var(--color-danger)]" />
-            <div className="w-3 h-3 rounded-full bg-[var(--color-warning)]" />
-            <div className="w-3 h-3 rounded-full bg-[var(--color-success)]" />
-          </div>
-          <p className="text-[15px] font-medium text-[var(--color-text-primary)] leading-relaxed italic mb-4">
-            "Snip.ly has completely transformed how we share links with our customers. The analytics are incredibly insightful."
-          </p>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[var(--color-bg-ui)] flex items-center justify-center text-[12px] font-semibold text-[var(--color-text-secondary)]">
-              S
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">Sarah Jenkins</p>
-              <p className="text-[12px] text-[var(--color-text-tertiary)]">Product Manager, TechCorp</p>
-            </div>
-          </div>
+      {/* Footer */}
+      <footer className="w-full max-w-[380px] text-center text-[11px] text-[var(--color-text-tertiary)] py-4 space-y-2">
+        <div className="flex items-center justify-center gap-4">
+          <a href="/#terms" className="hover:text-[var(--color-text-secondary)] transition-colors">Terms of Service</a>
+          <span className="text-[var(--color-border)]">•</span>
+          <a href="/#privacy" className="hover:text-[var(--color-text-secondary)] transition-colors">Privacy Policy</a>
         </div>
-      </div>
+        <p className="opacity-70">&copy; {new Date().getFullYear()} Snip.ly — URL Shortener Platform</p>
+      </footer>
     </div>
   );
 }
